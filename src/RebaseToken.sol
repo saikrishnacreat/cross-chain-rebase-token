@@ -17,8 +17,10 @@ contract RebaseToken is ERC20 {
     ////////////////////////////////////////// 
     error RebaseToken__InterestRateCanOnlyDecrease(uint256 s_interestRate,uint256 _newInterestRate);
 
+    uint256 private constant PRECISION_FACTOR = 1e18;
     uint256 private s_interestRate = 5e10;
     mapping (address => uint256) s_userInterestRate;
+    mapping (address => uint256) s_userLastUpdatedTimestamp;
 
     event InterestRateSet(uint256 _newInterestRate);
 
@@ -37,11 +39,37 @@ contract RebaseToken is ERC20 {
         s_interestRate = _newInterestRate;
         emit InterestRateSet(_newInterestRate);
     }
-
+    /**
+     * @notice Mint the user tokens when they deposit into the vault
+     * @param _to The user to mint tokens
+     * @param _amount The amount of tokens to mint
+     */
     function mint(address _to, uint256 _amount) external {
         _mintAccruedInterest(_to);
         s_userInterestRate[_to] = s_interestRate;
         _mint(_to,_amount);
+    }
+    /**
+     * caluculate the balance for the user including the interest that has accumulated since 
+     * (principle balance) * some interest that has accrued
+     * @param _user The user to caluculate the balance for
+     * @return The balance of the user that includes the interest that has accumulated
+     */
+    function balanceOf(address _user) public view override returns(uint256) {
+        // get the current principle balance of user
+        // multiply the principle balance by interest that had accumulated
+        // super keyword is used to call a function from parent contract (ohh its good)
+        return super.balanceOf(_user) * _calculateUserAccumulatedInterestSinceLastUpdate(_user)/PRECISION_FACTOR;
+    }
+    /**
+     * @notice calculate the interest that has accumulated since the last update 
+     * @param _user The user to calculate the interest for
+     * @return linearInterest The interest that has accumulated since the last update
+     */
+    function _calculateUserAccumulatedInterestSinceLastUpdate(address _user)  internal view returns(uint256 linearInterest) {
+        uint256 timeElapsed = block.timestamp - s_userLastUpdatedTimestamp[_user];
+        linearInterest = PRECISION_FACTOR +(s_userInterestRate[_user]*timeElapsed);
+        return linearInterest;
     }
 
     function _mintAccruedInterest(address _user) internal {
@@ -49,6 +77,8 @@ contract RebaseToken is ERC20 {
         // (2) calculate their current balance including any interest -> balanceOf
         // calculate thenumber of tokens that need to be minted to the user -> (2) -(1)
         // call _mint to mint the token to the user
+        // set the users last updated timestamp
+        s_userLastUpdatedTimestamp[_user] = block.timestamp;
     }
 
     /**
