@@ -114,7 +114,7 @@ contract RebaseTokenTest is Test {
     function testCannotCallMintAndBurn() public {
         vm.startPrank(user);
         vm.expectRevert();
-        rebaseToken.mint(user, 100);
+        rebaseToken.mint(user, 100,rebaseToken.getInterestRate());
     }
 
     function testGetPrincipleAmount(uint256 amount) public {
