@@ -99,6 +99,11 @@ contract CrossChainTest is Test {
         vm.stopPrank();
     }
 
+    /*
+    The configureTokenPool function is used to link two token pools on different chains so they can communicate for cross-chain transfers. 
+    It configures a local pool to recognize a remote pool and token on another chain, enabling simulated cross-chain operations.
+    */
+
     function configureTokenPool(uint256 fork, address localPool, uint64 remoteChainSelector,address remotePool, address remoteTokenAddress) public {
         vm.selectFork(fork);
         vm.prank(owner);
